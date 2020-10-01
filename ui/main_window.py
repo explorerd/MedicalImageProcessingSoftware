@@ -25,7 +25,7 @@ class MainWindowUI(QMainWindow):
         # 右边图像展示的layout
         left_layout = QVBoxLayout()
         left_layout.addStretch()
-        right_layout = QGridLayout()
+        right_layout = QVBoxLayout()
         out_layout.addLayout(left_layout)
         out_layout.addLayout(right_layout)
         # 工具选项layout和图像信息layout
@@ -34,11 +34,6 @@ class MainWindowUI(QMainWindow):
         img_info_layout.addStretch()
         left_layout.addLayout(self.tool_config_layout)
         left_layout.addLayout(img_info_layout)
-        # 临时占位空间
-        self.img_lbl = QLabel()
-        self.img_lbl.setText('图片展示占位')
-        right_layout.addWidget(self.img_lbl)
-        out_layout.addWidget(self.img_lbl)
         # 图像信息相关空间
         # 坐标信息
         self.img_coordinate_lbl = QLabel()
@@ -47,6 +42,55 @@ class MainWindowUI(QMainWindow):
         self.zoom_btn = QPushButton('Show Zoomed Slice')
         self.zoom_btn.setFixedSize(150, 20)
         # 图像信息区域折叠区域内的layout
+        self.create_image_info_area(img_info_layout)
+        # 右边图像显示区域
+        # 3d图像
+        img_3d_show_layout = QHBoxLayout()
+        right_layout.addLayout(img_3d_show_layout)
+        self.img_3d_lbl = QLabel('3d')
+        img_3d_show_layout.addWidget(self.img_3d_lbl)
+        # 3个2d的图像显示区域
+        img_2d_show_layout = QGridLayout()
+        right_layout.addLayout(img_2d_show_layout)
+        self.img_2d_1_lbl = QLabel('2d-1')
+        self.img_2d_2_lbl = QLabel('2d-2')
+        self.img_2d_3_lbl = QLabel('2d-3')
+        # 调节3个2d图像区域的布局
+        img_2d_control_1_layout = QHBoxLayout()
+        img_2d_control_2_layout = QHBoxLayout()
+        img_2d_control_3_layout = QHBoxLayout()
+        img_2d_control_1_widget = QWidget()
+        img_2d_control_2_widget = QWidget()
+        img_2d_control_3_widget = QWidget()
+        img_2d_control_1_widget.setLayout(img_2d_control_1_layout)
+        img_2d_control_2_widget.setLayout(img_2d_control_2_layout)
+        img_2d_control_3_widget.setLayout(img_2d_control_3_layout)
+        img_2d_show_layout.addWidget(img_2d_control_1_widget, 0, 0, 2, 40)
+        img_2d_show_layout.addWidget(img_2d_control_2_widget, 0, 1, 2, 40)
+        img_2d_show_layout.addWidget(img_2d_control_2_widget, 0, 2, 2, 40)
+        img_2d_show_layout.addWidget(img_2d_control_3_widget)
+        img_2d_show_layout.addWidget(self.img_2d_1_lbl, 1, 0, 40, 40)
+        img_2d_show_layout.addWidget(self.img_2d_2_lbl, 1, 1, 40, 40)
+        img_2d_show_layout.addWidget(self.img_2d_3_lbl, 1, 2, 40, 40)
+        self.create_tool_bar()
+
+    def create_tool_bar(self):
+        """
+        生成工具栏
+        :return:
+        """
+        # 工具栏
+        tool_bar = self.addToolBar('ToolBar')
+        about = QAction(QIcon('../icons/about.png'), 'about', self)
+        tool_bar.addAction(about)
+        about.triggered.connect(self.about_onclick)
+
+    def create_image_info_area(self, img_info_layout):
+        """
+        生成左下角图像信息的区域
+        :param img_info_layout:
+        :return:
+        """
         img_info_box_layout = QVBoxLayout()
         img_info_box_layout.addWidget(self.img_coordinate_lbl)
         img_info_box_layout.addWidget(self.zoom_btn)
@@ -57,19 +101,6 @@ class MainWindowUI(QMainWindow):
         img_info_box_container.addWidget(img_info_box)
         img_info_box_container.addStretch()
         img_info_layout.addLayout(img_info_box_container)
-        # 右边图像显示区域
-        # 3d图像
-        img_3d_lbl = QLabel()
-        right_layout.addWidget(img_3d_lbl)
-        # 3个2d的图像显示区域
-        img_2d_1_lbl = QLabel()
-        img_2d_2_lbl = QLabel()
-        img_2d_3_lbl = QLabel()
-        # 工具栏
-        tool_bar = self.addToolBar('ToolBar')
-        about = QAction(QIcon('../icons/about.png'), 'about', self)
-        tool_bar.addAction(about)
-        about.triggered.connect(self.about_onclick)
 
     def about_onclick(self):
         """
