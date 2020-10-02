@@ -2,44 +2,27 @@
 主窗口ui
 Created by DJ at 2020/10/1
 """
-import sys
 import sip
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from qt_components.collapsible_box import CollapsibleBox
 
+from img_2d_show_widget import Image2DShowWindow
+from event_objects import events
+
 
 class MainWindowUI(QMainWindow):
     def __init__(self):
         super(MainWindowUI, self).__init__()
-        self.setWindowTitle('医学影像处理软件')
-        # 窗口大小
-        self.resize(900, 600)
-        # 背景颜色
-        main_background = QPalette()
-        main_background.setColor(self.backgroundRole(), QColor(255, 255, 255))
-        self.setPalette(main_background)
-        main_frame = QWidget()
-        self.setCentralWidget(main_frame)
-        # 顶层布局
-        main_layout = QHBoxLayout(main_frame)
-        self.setLayout(main_layout)
-        # 左边工具选项和图像信息整体布局
-        left_frame = QFrame()
-        left_frame.setMinimumWidth(300)
-        left_layout = QVBoxLayout(left_frame)
-        left_layout.addStretch()
-        main_layout.addWidget(left_frame)
-        # 右边图像展示的区域
-        right_frame = QFrame()
-        right_layout = QVBoxLayout(right_frame)
-        main_layout.addWidget(right_frame)
+        main_layout = self.create_main_frame()
+        left_frame, left_layout, right_frame, right_layout = self.create_inner_frame(main_layout)
         # 工具选项layout和图像信息layout
         tool_config_widget = QWidget()
         self.tool_config_layout = QVBoxLayout(tool_config_widget)
         left_layout.addWidget(tool_config_widget)
         img_info_widget = QWidget()
+        img_info_widget.setMinimumHeight(50)
         img_info_layout = QVBoxLayout(img_info_widget)
         img_info_layout.addStretch()
         left_layout.addWidget(img_info_widget)
@@ -62,39 +45,16 @@ class MainWindowUI(QMainWindow):
         right_layout.addWidget(img_3d_show_widget)
         self.img_3d_lbl = QLabel('3d')
         img_3d_show_layout.addWidget(self.img_3d_lbl)
-        # 3个2d的图像显示区域
-        img_2d_show_widget = QWidget()
-        img_2d_show_layout = QHBoxLayout(img_2d_show_widget)
+        # 2D图像显示widget
+        img_2d_show_widget = Image2DShowWindow()
         right_layout.addWidget(img_2d_show_widget)
-        self.img_2d_1_lbl = QLabel('2d-1')
-        self.img_2d_2_lbl = QLabel('2d-2')
-        self.img_2d_3_lbl = QLabel('2d-3')
-        # 3个2d图像显示区域的布局
-        img_2d_show_1_widget = QWidget()
-        img_2d_show_1_layout = QVBoxLayout(img_2d_show_1_widget)
-        img_2d_show_2_widget = QWidget()
-        img_2d_show_2_layout = QVBoxLayout(img_2d_show_2_widget)
-        img_2d_show_3_widget = QWidget()
-        img_2d_show_3_layout = QVBoxLayout(img_2d_show_3_widget)
-        img_2d_show_layout.addWidget(img_2d_show_1_widget)
-        img_2d_show_layout.addWidget(img_2d_show_2_widget)
-        img_2d_show_layout.addWidget(img_2d_show_3_widget)
-        img_2d_control_1_widget = QWidget()
-        img_2d_control_2_widget = QWidget()
-        img_2d_control_3_widget = QWidget()
-        img_2d_control_1_layout = QHBoxLayout(img_2d_control_1_widget)
-        img_2d_control_2_layout = QHBoxLayout(img_2d_control_2_widget)
-        img_2d_control_3_layout = QHBoxLayout(img_2d_control_3_widget)
-        img_2d_show_1_layout.addWidget(img_2d_control_1_widget)
-        img_2d_show_2_layout.addWidget(img_2d_control_2_widget)
-        img_2d_show_3_layout.addWidget(img_2d_control_3_widget)
-        img_2d_show_1_layout.addWidget(self.img_2d_1_lbl)
-        img_2d_show_2_layout.addWidget(self.img_2d_2_lbl)
-        img_2d_show_3_layout.addWidget(self.img_2d_3_lbl)
-        img_2d_control_1_layout.addWidget(QLabel('调节区域1'))
-        img_2d_control_2_layout.addWidget(QLabel('调节区域2'))
-        img_2d_control_3_layout.addWidget(QLabel('调节区域3'))
         self.create_tool_bar()
+        # 添加菜单栏
+        menu_bar = self.menuBar()
+        file = menu_bar.addMenu('File')
+        load_dicom = QAction('Load DICOM', self)
+        file.addAction(load_dicom)
+        load_dicom.triggered.connect(self.load_dicom_action)
         # 左右区域的调节
         left_right_splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(left_right_splitter)
@@ -109,6 +69,55 @@ class MainWindowUI(QMainWindow):
         # left_right_spacer = QSpacerItem(Qt.Horizontal)
         # spacerItem = QSpacerItem(50, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
         # main_layout.addItem(spacerItem)
+
+    @staticmethod
+    def load_dicom_action():
+        """
+        菜单栏 Load DICOM 选项触发事件
+        载入DICOM图像目录
+        :return:
+        """
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.DirectoryOnly)
+        if file_dialog.exec_():
+            directory = str(file_dialog.selectedFiles()[0])
+            events.dicom_dir_signal.send(directory)
+
+    def create_inner_frame(self, main_layout):
+        """
+        创建第二层框架结构
+        :param main_layout:
+        :return:
+        """
+        # 左边工具选项和图像信息整体布局
+        left_frame = QFrame()
+        left_frame.setMinimumWidth(300)
+        left_layout = QVBoxLayout(left_frame)
+        left_layout.addStretch()
+        main_layout.addWidget(left_frame)
+        # 右边图像展示的区域
+        right_frame = QFrame()
+        right_layout = QVBoxLayout(right_frame)
+        main_layout.addWidget(right_frame)
+        return left_frame, left_layout, right_frame, right_layout
+
+    def create_main_frame(self):
+        """
+        创建最顶层的布局结构
+        :return:
+        """
+        self.setWindowTitle('医学影像处理软件')
+        # 窗口大小
+        self.resize(900, 600)
+        # 背景颜色
+        main_background = QPalette()
+        main_background.setColor(self.backgroundRole(), QColor(255, 255, 255))
+        self.setPalette(main_background)
+        main_frame = QWidget()
+        self.setCentralWidget(main_frame)
+        # 顶层布局
+        main_layout = QHBoxLayout(main_frame)
+        return main_layout
 
     def create_tool_bar(self):
         """
@@ -159,9 +168,3 @@ class MainWindowUI(QMainWindow):
         about_widget.setLayout(layout)
         self.tool_config_layout.addWidget(about_widget)
 
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    main_window = MainWindowUI()
-    main_window.show()
-    sys.exit(app.exec_())
