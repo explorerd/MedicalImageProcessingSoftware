@@ -126,7 +126,7 @@ class MainWindowUI(QMainWindow):
         """
         # 工具栏
         tool_bar = self.addToolBar('ToolBar')
-        about = QAction(QIcon('../icons/about.png'), 'about', self)
+        about = QAction(QIcon('icons/about.png'), 'about', self)
         tool_bar.addAction(about)
         about.triggered.connect(self.about_onclick)
 
@@ -154,12 +154,12 @@ class MainWindowUI(QMainWindow):
         """
         # 先清空布局中的内容
         for i in range(self.tool_config_layout.count()):
-            self.tool_config_layout.removeWidget(self.tool_config_layout.itemAt(i).widget())
+            # self.tool_config_layout.removeWidget(self.tool_config_layout.itemAt(i).widget())
             # 网上的说法：通过上面的代码无法彻底删除对象（有内存残留），使用下面的方法删除
             sip.delete(self.tool_config_layout.itemAt(i).widget())
 
         logo_lbl = QLabel()
-        logo_lbl.setPixmap(QPixmap('../images/ysu_logo.jpeg'))
+        logo_lbl.setPixmap(QPixmap('images/ysu_logo.jpeg'))
         about_lbl = QLabel("医学图像处理软件--开发版本")
         layout = QVBoxLayout()
         layout.addWidget(logo_lbl)
