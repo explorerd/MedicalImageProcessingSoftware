@@ -6,9 +6,13 @@ import sip
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from qt_components.collapsible_box import CollapsibleBox
+from collapsible_box import CollapsibleBox
+from TwoDimLabel import TwoDimLabel
+from util.file_util import read_dicom
+from service.dicom import Dicom
+from constants.PlaneType import PlaneType
+from util.image_processer import draw_img
 
-from img_2d_show_widget import Image2DShowWindow
 from event_objects import events
 
 
@@ -46,8 +50,8 @@ class MainWindowUI(QMainWindow):
         self.img_3d_lbl = QLabel('3d')
         img_3d_show_layout.addWidget(self.img_3d_lbl)
         # 2D图像显示widget
-        img_2d_show_widget = Image2DShowWindow()
-        right_layout.addWidget(img_2d_show_widget)
+        img_2d_show_widget = self.create_2d_image_area(right_layout)
+        # 上面为2D图像显示widget
         self.create_tool_bar()
         # 添加菜单栏
         menu_bar = self.menuBar()
@@ -69,9 +73,112 @@ class MainWindowUI(QMainWindow):
         # left_right_spacer = QSpacerItem(Qt.Horizontal)
         # spacerItem = QSpacerItem(50, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
         # main_layout.addItem(spacerItem)
+        # dicom文件相关
+        self.dicom = None
+
+    def create_2d_image_area(self, right_layout):
+        """
+        创建2d图像显示区域
+        :param right_layout:
+        :return:
+        """
+        img_2d_show_widget = QWidget()
+        img_2d_show_layout = QHBoxLayout(img_2d_show_widget)
+        self.img_2d_1_lbl = TwoDimLabel('2d-1')
+        self.img_2d_2_lbl = TwoDimLabel('2d-2')
+        self.img_2d_3_lbl = TwoDimLabel('2d-3')
+        img_2d_show_1_widget = QWidget()
+        img_2d_show_1_layout = QVBoxLayout(img_2d_show_1_widget)
+        img_2d_show_2_widget = QWidget()
+        img_2d_show_2_layout = QVBoxLayout(img_2d_show_2_widget)
+        img_2d_show_3_widget = QWidget()
+        img_2d_show_3_layout = QVBoxLayout(img_2d_show_3_widget)
+        img_2d_show_layout.addWidget(img_2d_show_1_widget)
+        img_2d_show_layout.addWidget(img_2d_show_2_widget)
+        img_2d_show_layout.addWidget(img_2d_show_3_widget)
+        img_2d_control_1_widget = QWidget()
+        img_2d_control_2_widget = QWidget()
+        img_2d_control_3_widget = QWidget()
+        img_2d_control_1_layout = QHBoxLayout(img_2d_control_1_widget)
+        img_2d_control_2_layout = QHBoxLayout(img_2d_control_2_widget)
+        img_2d_control_3_layout = QHBoxLayout(img_2d_control_3_widget)
+        img_2d_show_1_layout.addWidget(img_2d_control_1_widget)
+        img_2d_show_2_layout.addWidget(img_2d_control_2_widget)
+        img_2d_show_3_layout.addWidget(img_2d_control_3_widget)
+        img_2d_show_1_layout.addWidget(self.img_2d_1_lbl)
+        img_2d_show_2_layout.addWidget(self.img_2d_2_lbl)
+        img_2d_show_3_layout.addWidget(self.img_2d_3_lbl)
+        self.position_label_1 = QLabel()
+        self.position_label_2 = QLabel()
+        self.position_label_3 = QLabel()
+        self.slider_1 = self.create_2d_slider()
+        self.slider_1.valueChanged.connect(self.slider1_value_changed)
+        self.slider_2 = self.create_2d_slider()
+        self.slider_2.valueChanged.connect(self.slider2_value_changed)
+        self.slider_3 = self.create_2d_slider()
+        self.slider_3.valueChanged.connect(self.slider3_value_changed)
+        img_2d_control_1_layout.addWidget(self.slider_1)
+        img_2d_control_1_layout.addWidget(self.position_label_1)
+        img_2d_control_2_layout.addWidget(self.slider_2)
+        img_2d_control_2_layout.addWidget(self.position_label_2)
+        img_2d_control_3_layout.addWidget(self.slider_3)
+        img_2d_control_3_layout.addWidget(self.position_label_3)
+        right_layout.addWidget(img_2d_show_widget)
+        return img_2d_show_widget
+
+    def create_2d_slider(self,):
+        """
+        对控制图像位置的slider进行初始化
+        :return:
+        """
+        slider = QSlider(Qt.Horizontal)
+        slider.setMinimum(0)
+        slider.setSingleStep(1)
+        return slider
+
+    def update_2d_slider(self, slider: QSlider, image_label: TwoDimLabel):
+        """
+        对控制图像位置的slider进行初始化
+        :param slider:
+        :param image_label:
+        :return:
+        """
+        slider.setMinimum(0)
+        slider.setMaximum(len(image_label.slices) - 1)
+        slider.setValue(len(image_label.slices) // 2)
+        slider.setSingleStep(1)
+
+    def slider1_value_changed(self):
+        """
+        控制图像位置slider1事件，槽函数
+        :return:
+        """
+        self.slider_value_changed(self.slider_1, self.img_2d_1_lbl, self.position_label_1)
+
+    def slider2_value_changed(self):
+        """
+        控制图像位置slider2事件，槽函数
+        :return:
+        """
+        self.slider_value_changed(self.slider_2, self.img_2d_2_lbl, self.position_label_2)
+
+    def slider3_value_changed(self):
+        """
+        控制图像位置slider3事件，槽函数
+        :return:
+        """
+        self.slider_value_changed(self.slider_3, self.img_2d_3_lbl, self.position_label_3)
 
     @staticmethod
-    def load_dicom_action():
+    def slider_value_changed(slider: QSlider, label: TwoDimLabel, position_label):
+        value = slider.value()
+        if label.slices:
+            current_slice = label.slices[value]
+            position_label.setText(str(current_slice.position))
+            label.current_slice = current_slice.data
+            label.show_image()
+
+    def load_dicom_action(self):
         """
         菜单栏 Load DICOM 选项触发事件
         载入DICOM图像目录
@@ -81,7 +188,45 @@ class MainWindowUI(QMainWindow):
         file_dialog.setFileMode(QFileDialog.DirectoryOnly)
         if file_dialog.exec_():
             directory = str(file_dialog.selectedFiles()[0])
-            events.dicom_dir_signal.send(directory)
+            dicom_files = read_dicom(directory)
+            self.dicom = Dicom(dicom_files)
+            # 给3个二维图像label赋值
+            self.set_2d_image_label()
+
+    def set_2d_image_label(self):
+        """
+        将图像信息放到对应图像label中
+        :return:
+        """
+        if self.dicom.is_not_none:
+            plane_info = self.dicom.plane_info
+            axial_info = plane_info[PlaneType.AXIAL_PLANE.value]
+            coronal_info = plane_info[PlaneType.CORONAL_PLANE.value]
+            sagittal_info = plane_info[PlaneType.SAGITTAL_PLANE.value]
+            MainWindowUI.set_2d_image(self.img_2d_1_lbl, axial_info, PlaneType.AXIAL_PLANE)
+            MainWindowUI.set_2d_image(self.img_2d_2_lbl, coronal_info, PlaneType.CORONAL_PLANE)
+            MainWindowUI.set_2d_image(self.img_2d_3_lbl, sagittal_info, PlaneType.SAGITTAL_PLANE)
+            self.img_2d_1_lbl.has_data = True
+            self.img_2d_2_lbl.has_data = True
+            self.img_2d_3_lbl.has_data = True
+            # 更新图像滑块的控制参数
+            self.update_2d_slider(self.slider_1, self.img_2d_1_lbl)
+            self.update_2d_slider(self.slider_2, self.img_2d_2_lbl)
+            self.update_2d_slider(self.slider_3, self.img_2d_3_lbl)
+
+    @staticmethod
+    def set_2d_image(label: TwoDimLabel, plane_data, plane_type):
+        """
+        将解剖面信息和图像放到对应label中
+        :param label:
+        :param plane_data: 图像信息
+        :param plane_type: 解剖面类型
+        :return:
+        """
+        label.plane = plane_type
+        label.slices = plane_data
+        label.current_slice = plane_data[len(plane_data) // 2]
+        label.show_image()
 
     def create_inner_frame(self, main_layout):
         """
@@ -126,7 +271,7 @@ class MainWindowUI(QMainWindow):
         """
         # 工具栏
         tool_bar = self.addToolBar('ToolBar')
-        about = QAction(QIcon('icons/about.png'), 'about', self)
+        about = QAction(QIcon('resource/icons/about.png'), 'about', self)
         tool_bar.addAction(about)
         about.triggered.connect(self.about_onclick)
 
@@ -159,7 +304,7 @@ class MainWindowUI(QMainWindow):
             sip.delete(self.tool_config_layout.itemAt(i).widget())
 
         logo_lbl = QLabel()
-        logo_lbl.setPixmap(QPixmap('images/ysu_logo.jpeg'))
+        logo_lbl.setPixmap(QPixmap('resource/images/ysu_logo.jpeg'))
         about_lbl = QLabel("医学图像处理软件--开发版本")
         layout = QVBoxLayout()
         layout.addWidget(logo_lbl)
@@ -167,4 +312,3 @@ class MainWindowUI(QMainWindow):
         about_widget = QWidget()
         about_widget.setLayout(layout)
         self.tool_config_layout.addWidget(about_widget)
-
