@@ -88,7 +88,7 @@ class Dicom:
             # 计算RCS坐标
             # 对于一个切片，我们需要的是在它的解剖面方向的位置，而在这个切片中的所有voxel，这个位置应该是一样的
             # 提取第i列进行坐标计算
-            position = get_rcs(self.base_dicom, 0, i)[column_plane_type.value]
+            position = calc_position(column_plane_type, get_rcs(self.base_dicom, 0, i))
             column_orientation_info.append(Slice(position, img))
         '提取j(行方向)图像'
         row_plane_type = self.get_plane_type(1)
@@ -99,14 +99,14 @@ class Dicom:
             # 计算RCS坐标
             # 对于一个切片，我们需要的是在它的解剖面方向的位置，而在这个切片中的所有voxel，这个位置应该是一样的
             # 提取第i行进行坐标计算
-            position = get_rcs(self.base_dicom, i, 0)[row_plane_type.value]
+            position = calc_position(row_plane_type, get_rcs(self.base_dicom, 0, i))
             row_orientation_info.append(Slice(position, img))
         '提取k(层方向)图像'
         # k方向的图像即原始切片图像, 其解剖面方向坐标也可以直接从ImagePositionPatient对应分量中提取
         layer_orientation_info = []
         for each in self.dicom_files:
             layer_orientation_info.append(
-                Slice(each.ImagePositionPatient[self.original_plane_type.value], each.pixel_array))
+                Slice(calc_position(self.original_plane_type, each.ImagePositionPatient) , each.pixel_array))
         return column_plane_type, column_orientation_info, row_plane_type, row_orientation_info, layer_orientation_info
 
     def get_plane_type(self, orientation):
@@ -139,6 +139,7 @@ class Slice:
     """
     表示每一个切片的信息，位置、图像等
     """
+
     def __init__(self, position, image_data):
         self.data = image_data
         self.position = position
@@ -169,3 +170,25 @@ def get_rcs(dicom, row, column):
     image_position_vector = np.array([column, row, 0, 1]).reshape((-1, 1))
     rcs = np.dot(m, image_position_vector)
     return rcs.squeeze()[0:-1]
+
+
+def calc_position(plane_type, coordinate):
+    """
+    计算切片在解剖学平面平面的位置
+    TODO: 目前默认根据：If Anatomical Orientation Type (0010,2210) is absent or has a value of BIPED,
+    the x-axis is increasing to the left hand side of the patient.
+    The y-axis is increasing to the posterior side of the patient.
+    The z-axis is increasing toward the head of the patient.
+    来处理，其他的判断逻辑暂未加入。
+    :param plane_type:
+    :param coordinate:
+    :return:
+    """
+    position = str("%.2f" % coordinate[plane_type.value])
+    if plane_type == PlaneType.CORONAL_PLANE:
+        position = 'P:' + position
+    elif plane_type == PlaneType.SAGITTAL_PLANE:
+        position = 'L:' + position
+    elif plane_type == PlaneType.AXIAL_PLANE:
+        position = 'S:' + position
+    return position

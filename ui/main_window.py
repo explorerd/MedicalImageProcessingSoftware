@@ -3,24 +3,22 @@
 Created by DJ at 2020/10/1
 """
 import sip
-from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from collapsible_box import CollapsibleBox
-from TwoDimLabel import TwoDimLabel
-from util.file_util import read_dicom
-from service.dicom import Dicom
-from constants.PlaneType import PlaneType
-from util.image_processer import draw_img
 
-from event_objects import events
+from TwoDimLabel import TwoDimLabel
+from collapsible_box import CollapsibleBox
+from service.dicom import Dicom
+from util.common_util import *
+from util.file_util import read_dicom
 
 
 class MainWindowUI(QMainWindow):
     def __init__(self):
         super(MainWindowUI, self).__init__()
         main_layout = self.create_main_frame()
-        left_frame, left_layout, right_frame, right_layout = self.create_inner_frame(main_layout)
+        left_frame, left_layout, right_frame, right_layout = MainWindowUI.create_inner_frame(main_layout)
         # 工具选项layout和图像信息layout
         tool_config_widget = QWidget()
         self.tool_config_layout = QVBoxLayout(tool_config_widget)
@@ -76,57 +74,88 @@ class MainWindowUI(QMainWindow):
         # dicom文件相关
         self.dicom = None
 
+    # 上面是切片调节滑块
     def create_2d_image_area(self, right_layout):
         """
         创建2d图像显示区域
         :param right_layout:
         :return:
         """
+        # 图像显示区域
         img_2d_show_widget = QWidget()
+        right_layout.addWidget(img_2d_show_widget)
         img_2d_show_layout = QHBoxLayout(img_2d_show_widget)
-        self.img_2d_1_lbl = TwoDimLabel('2d-1')
-        self.img_2d_2_lbl = TwoDimLabel('2d-2')
-        self.img_2d_3_lbl = TwoDimLabel('2d-3')
         img_2d_show_1_widget = QWidget()
         img_2d_show_1_layout = QVBoxLayout(img_2d_show_1_widget)
         img_2d_show_2_widget = QWidget()
         img_2d_show_2_layout = QVBoxLayout(img_2d_show_2_widget)
         img_2d_show_3_widget = QWidget()
         img_2d_show_3_layout = QVBoxLayout(img_2d_show_3_widget)
-        img_2d_show_layout.addWidget(img_2d_show_1_widget)
-        img_2d_show_layout.addWidget(img_2d_show_2_widget)
-        img_2d_show_layout.addWidget(img_2d_show_3_widget)
-        img_2d_control_1_widget = QWidget()
-        img_2d_control_2_widget = QWidget()
-        img_2d_control_3_widget = QWidget()
-        img_2d_control_1_layout = QHBoxLayout(img_2d_control_1_widget)
-        img_2d_control_2_layout = QHBoxLayout(img_2d_control_2_widget)
-        img_2d_control_3_layout = QHBoxLayout(img_2d_control_3_widget)
-        img_2d_show_1_layout.addWidget(img_2d_control_1_widget)
-        img_2d_show_2_layout.addWidget(img_2d_control_2_widget)
-        img_2d_show_3_layout.addWidget(img_2d_control_3_widget)
-        img_2d_show_1_layout.addWidget(self.img_2d_1_lbl)
-        img_2d_show_2_layout.addWidget(self.img_2d_2_lbl)
-        img_2d_show_3_layout.addWidget(self.img_2d_3_lbl)
+        self.img_2d_1_lbl = TwoDimLabel('2d-1')
+        self.img_2d_2_lbl = TwoDimLabel('2d-2')
+        self.img_2d_3_lbl = TwoDimLabel('2d-3')
+        # 图像控制区域
+        # 切片调节滑块
+        img_2d_control_1_slider_widget = QWidget()
+        img_2d_control_1_slider_widget.setMaximumHeight(35)
+        img_2d_control_2_slider_widget = QWidget()
+        img_2d_control_2_slider_widget.setMaximumHeight(35)
+        img_2d_control_3_slider_widget = QWidget()
+        img_2d_control_3_slider_widget.setMaximumHeight(35)
+        img_2d_control_1_slider_layout = QHBoxLayout(img_2d_control_1_slider_widget)
+        img_2d_control_2_slider_layout = QHBoxLayout(img_2d_control_2_slider_widget)
+        img_2d_control_3_slider_layout = QHBoxLayout(img_2d_control_3_slider_widget)
         self.position_label_1 = QLabel()
         self.position_label_2 = QLabel()
         self.position_label_3 = QLabel()
-        self.slider_1 = self.create_2d_slider()
+        self.slider_1 = MainWindowUI.create_2d_slider()
         self.slider_1.valueChanged.connect(self.slider1_value_changed)
-        self.slider_2 = self.create_2d_slider()
+        self.slider_2 = MainWindowUI.create_2d_slider()
         self.slider_2.valueChanged.connect(self.slider2_value_changed)
-        self.slider_3 = self.create_2d_slider()
+        self.slider_3 = MainWindowUI.create_2d_slider()
         self.slider_3.valueChanged.connect(self.slider3_value_changed)
-        img_2d_control_1_layout.addWidget(self.slider_1)
-        img_2d_control_1_layout.addWidget(self.position_label_1)
-        img_2d_control_2_layout.addWidget(self.slider_2)
-        img_2d_control_2_layout.addWidget(self.position_label_2)
-        img_2d_control_3_layout.addWidget(self.slider_3)
-        img_2d_control_3_layout.addWidget(self.position_label_3)
-        right_layout.addWidget(img_2d_show_widget)
+        img_2d_control_1_slider_layout.addWidget(self.slider_1)
+        img_2d_control_1_slider_layout.addWidget(self.position_label_1)
+        img_2d_control_2_slider_layout.addWidget(self.slider_2)
+        img_2d_control_2_slider_layout.addWidget(self.position_label_2)
+        img_2d_control_3_slider_layout.addWidget(self.slider_3)
+        img_2d_control_3_slider_layout.addWidget(self.position_label_3)
+        # 控制区域的第二层，目前有一个下拉列表，显示并选择解剖平面
+        img_2d_control_1_plane_widget = QWidget()
+        img_2d_control_1_plane_widget.setMaximumHeight(35)
+        img_2d_control_2_plane_widget = QWidget()
+        img_2d_control_2_plane_widget.setMaximumHeight(35)
+        img_2d_control_3_plane_widget = QWidget()
+        img_2d_control_3_plane_widget.setMaximumHeight(35)
+        img_2d_control_1_plane_layout = QHBoxLayout(img_2d_control_1_plane_widget)
+        img_2d_control_2_plane_layout = QHBoxLayout(img_2d_control_2_plane_widget)
+        img_2d_control_3_plane_layout = QHBoxLayout(img_2d_control_3_plane_widget)
+        self.img_2d_control_1_plane_combobox = QComboBox()
+        self.img_2d_control_2_plane_combobox = QComboBox()
+        self.img_2d_control_3_plane_combobox = QComboBox()
+        self.img_2d_control_1_plane_combobox.activated.connect(self.img_2d_control_1_plane_combobox_activated)
+        self.img_2d_control_2_plane_combobox.activated.connect(self.img_2d_control_2_plane_combobox_activated)
+        self.img_2d_control_3_plane_combobox.activated.connect(self.img_2d_control_3_plane_combobox_activated)
+        img_2d_control_1_plane_layout.addWidget(self.img_2d_control_1_plane_combobox)
+        img_2d_control_2_plane_layout.addWidget(self.img_2d_control_2_plane_combobox)
+        img_2d_control_3_plane_layout.addWidget(self.img_2d_control_3_plane_combobox)
+        # 在布局中添加上述widgets
+        img_2d_show_1_layout.addWidget(img_2d_control_1_slider_widget)
+        img_2d_show_2_layout.addWidget(img_2d_control_2_slider_widget)
+        img_2d_show_3_layout.addWidget(img_2d_control_3_slider_widget)
+        img_2d_show_1_layout.addWidget(img_2d_control_1_plane_widget)
+        img_2d_show_2_layout.addWidget(img_2d_control_2_plane_widget)
+        img_2d_show_3_layout.addWidget(img_2d_control_3_plane_widget)
+        img_2d_show_1_layout.addWidget(self.img_2d_1_lbl)
+        img_2d_show_2_layout.addWidget(self.img_2d_2_lbl)
+        img_2d_show_3_layout.addWidget(self.img_2d_3_lbl)
+        img_2d_show_layout.addWidget(img_2d_show_1_widget)
+        img_2d_show_layout.addWidget(img_2d_show_2_widget)
+        img_2d_show_layout.addWidget(img_2d_show_3_widget)
         return img_2d_show_widget
 
-    def create_2d_slider(self,):
+    @staticmethod
+    def create_2d_slider():
         """
         对控制图像位置的slider进行初始化
         :return:
@@ -134,9 +163,11 @@ class MainWindowUI(QMainWindow):
         slider = QSlider(Qt.Horizontal)
         slider.setMinimum(0)
         slider.setSingleStep(1)
+        slider.setMaximumHeight(20)
         return slider
 
-    def update_2d_slider(self, slider: QSlider, image_label: TwoDimLabel):
+    @staticmethod
+    def update_2d_slider(slider: QSlider, image_label: TwoDimLabel):
         """
         对控制图像位置的slider进行初始化
         :param slider:
@@ -147,6 +178,19 @@ class MainWindowUI(QMainWindow):
         slider.setMaximum(len(image_label.slices) - 1)
         slider.setValue(len(image_label.slices) // 2)
         slider.setSingleStep(1)
+
+    @staticmethod
+    def update_2d_plane_combobox(plane_box: QComboBox, image_label: TwoDimLabel):
+        """
+        载入图像后，对选择图像解剖平面的下拉框进行初始化
+        :param plane_box:
+        :param image_label:
+        :return:
+        """
+        plane_box.clear()
+        if image_label.has_data:
+            plane_box.addItem(get_plane_name(image_label.plane))
+        plane_box.addItems(get_other_planes(image_label.plane))
 
     def slider1_value_changed(self):
         """
@@ -174,7 +218,7 @@ class MainWindowUI(QMainWindow):
         value = slider.value()
         if label.slices:
             current_slice = label.slices[value]
-            position_label.setText(str(current_slice.position))
+            position_label.setText(current_slice.position)
             label.current_slice = current_slice.data
             label.show_image()
 
@@ -213,6 +257,11 @@ class MainWindowUI(QMainWindow):
             self.update_2d_slider(self.slider_1, self.img_2d_1_lbl)
             self.update_2d_slider(self.slider_2, self.img_2d_2_lbl)
             self.update_2d_slider(self.slider_3, self.img_2d_3_lbl)
+            # 更新解剖面选择框参数
+            # TODO:
+            MainWindowUI.update_2d_plane_combobox(self.img_2d_control_1_plane_combobox, self.img_2d_1_lbl)
+            MainWindowUI.update_2d_plane_combobox(self.img_2d_control_2_plane_combobox, self.img_2d_2_lbl)
+            MainWindowUI.update_2d_plane_combobox(self.img_2d_control_3_plane_combobox, self.img_2d_3_lbl)
 
     @staticmethod
     def set_2d_image(label: TwoDimLabel, plane_data, plane_type):
@@ -228,7 +277,8 @@ class MainWindowUI(QMainWindow):
         label.current_slice = plane_data[len(plane_data) // 2]
         label.show_image()
 
-    def create_inner_frame(self, main_layout):
+    @staticmethod
+    def create_inner_frame(main_layout):
         """
         创建第二层框架结构
         :param main_layout:
@@ -312,3 +362,46 @@ class MainWindowUI(QMainWindow):
         about_widget = QWidget()
         about_widget.setLayout(layout)
         self.tool_config_layout.addWidget(about_widget)
+
+    def img_2d_control_1_plane_combobox_activated(self):
+        """
+        解剖面选择下拉列表1的选择信号 槽函数
+        :return:
+        """
+        self.img_2d_control_plane_combobox_activated(self.img_2d_control_1_plane_combobox, self.img_2d_1_lbl,
+                                                     self.slider_1)
+
+    def img_2d_control_2_plane_combobox_activated(self):
+        """
+        解剖面选择下拉列表2的选择信号 槽函数
+        :return:
+        """
+        self.img_2d_control_plane_combobox_activated(self.img_2d_control_2_plane_combobox, self.img_2d_2_lbl,
+                                                     self.slider_2)
+
+    def img_2d_control_3_plane_combobox_activated(self):
+        """
+        解剖面选择下拉列表3的选择信号 槽函数
+        :return:
+        """
+        self.img_2d_control_plane_combobox_activated(self.img_2d_control_3_plane_combobox, self.img_2d_3_lbl,
+                                                     self.slider_3)
+
+    def img_2d_control_plane_combobox_activated(self, plane_box: QComboBox, img_label: TwoDimLabel, slider: QSlider):
+        """
+        解剖面选择下拉列表选择信号处理函数
+        :param plane_box:
+        :param img_label:
+        :param slider:
+        :return:
+        """
+        if not img_label.has_data:
+            return
+        selected_plane = get_plane(plane_box.currentText())
+        if img_label.plane == selected_plane:
+            return
+        plane_info = self.dicom.plane_info[selected_plane.value]
+        # 更新img_label信息
+        MainWindowUI.set_2d_image(img_label, plane_info, selected_plane)
+        # 更新slider 信息
+        MainWindowUI.update_2d_slider(slider, img_label)
