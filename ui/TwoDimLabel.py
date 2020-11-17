@@ -18,6 +18,7 @@ class TwoDimLabel(QLabel):
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.setStyleSheet("background-color: Black")
         # 需要展示的所有切片数据
         self.slices = None
         # 当前展示的图像 tuple(position, image)
@@ -28,18 +29,26 @@ class TwoDimLabel(QLabel):
         self.has_data = False
         self.setScaledContents(True)
 
+    def resizeEvent(self, event):
+        if self.has_data:
+            self.show_image()
+
     def show_image(self):
         """
         显示当前图像
         :return:
         """
         width = self.width()
-        height = self.height()
         image = self.current_slice.data
         image = convert_8bit(image)
-        # image = cv2.resize(image, (self.width() - 10, self.height() - 10))
-        qimage = QImage(image, image.shape[1], image.shape[0], QImage.Format_Grayscale8)
+        original_height, original_width = image.shape
         # 为了适应label的大小，需要对图像进行缩放，使用cv2.resize 的结果创建QImage在qt中显示有严重的扭曲现象
         # 不知道原因，使用QImage进行放缩则没有问题
-        qimage = qimage.scaled(width, height, transformMode=Qt.SmoothTransformation)
+        # 等比例缩放
+        scale = original_width / width
+        target_width = int(original_width // scale)
+        target_height = int(original_height // scale)
+        qimage = QImage(image, image.shape[1], image.shape[0], QImage.Format_Grayscale8)
+        qimage = qimage.scaled(target_width, target_height, transformMode=Qt.SmoothTransformation)
         self.setPixmap(QPixmap.fromImage(qimage))
+        print(f'new width is {target_width}, height is {target_height}')
